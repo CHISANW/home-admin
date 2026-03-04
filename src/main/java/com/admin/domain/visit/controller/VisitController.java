@@ -1,6 +1,8 @@
 package com.admin.domain.visit.controller;
 
+import com.admin.domain.visit.dto.VisitCountResponse;
 import com.admin.domain.visit.service.VisitService;
+import com.admin.global.util.CommonResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,20 +12,22 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/admin/visit")
+@RequestMapping("/v1/admin/visit")
 public class VisitController {
 
     private final VisitService visitService;
 
     @PostMapping
-    public void recordVisit(HttpServletRequest request) {
+    public CommonResponse<Void> recordVisit(HttpServletRequest request) {
         String ip = getClientIp(request);
         visitService.recordVisit(ip);
+        return CommonResponse.ok(null);
     }
 
     @GetMapping("/count")
-    public long getTodayVisitorCount() {
-        return visitService.getTodayVisitorCount();
+    public CommonResponse<VisitCountResponse> getTodayVisitorCount() {
+        long count = visitService.getTodayVisitorCount();
+        return CommonResponse.ok(VisitCountResponse.from(count));
     }
 
     private String getClientIp(HttpServletRequest request) {
