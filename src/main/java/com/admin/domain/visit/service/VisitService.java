@@ -26,12 +26,11 @@ public class VisitService {
         LocalDateTime start = today.atStartOfDay();
         LocalDateTime end = today.atTime(LocalTime.MAX);
 
-        if (visitorLogRepository.findByIpAndCreatedAtBetween(ip, start, end).isEmpty()) {
-            VisitorLog log = VisitorLog.builder()
-                    .ip(ip)
-                    .build();
-            visitorLogRepository.save(log);
-        }
+        visitorLogRepository.findByIpAndCreatedAtBetween(ip, start, end)
+                .ifPresentOrElse(
+                        VisitorLog::incrementVisitCount,
+                        () -> visitorLogRepository.save(VisitorLog.builder().ip(ip).build())
+                );
     }
 
     public long getTodayVisitorCount() {

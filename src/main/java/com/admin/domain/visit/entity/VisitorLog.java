@@ -20,8 +20,15 @@ public class VisitorLog extends Timestamped {
 
     private String ip;
 
+    private int visitCount;
+
     @Builder
     public VisitorLog(String ip) {
         this.ip = ip;
+        this.visitCount = 1;
+    }
+
+    public void incrementVisitCount() {
+        this.visitCount++;
     }
 }
