@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.regex.Pattern;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1/admin/visit")
@@ -30,23 +32,38 @@ public class VisitController {
         return CommonResponse.ok(VisitCountResponse.from(count));
     }
 
+    private static final Pattern IPV4_PATTERN =
+            Pattern.compile("^((25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)$");
+
     private String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("Proxy-Client-IP");
+        String ip = extractFirstIp(request.getHeader("X-Forwarded-For"));
+        if (!isValidIpv4(ip)) ip = extractFirstIp(request.getHeader("Proxy-Client-IP"));
+        if (!isValidIpv4(ip)) ip = extractFirstIp(request.getHeader("WL-Proxy-Client-IP"));
+        if (!isValidIpv4(ip)) ip = extractFirstIp(request.getHeader("HTTP_CLIENT_IP"));
+        if (!isValidIpv4(ip)) ip = extractFirstIp(request.getHeader("HTTP_X_FORWARDED_FOR"));
+        if (!isValidIpv4(ip)) ip = normalizeIp(request.getRemoteAddr());
+        return ip;
+    }
+
+    private String extractFirstIp(String header) {
+        if (header == null || header.isBlank() || "unknown".equalsIgnoreCase(header)) {
+            return null;
         }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("WL-Proxy-Client-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("HTTP_CLIENT_IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("HTTP_X_FORWARDED_FOR");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
+        // X-Forwarded-For: client, proxy1, proxy2 → 첫 번째 IP만 사용
+        String first = header.split(",")[0].trim();
+        return normalizeIp(first);
+    }
+
+    private String normalizeIp(String ip) {
+        if (ip == null) return null;
+        // IPv4-mapped IPv6 (::ffff:x.x.x.x) → IPv4로 변환
+        if (ip.startsWith("::ffff:") || ip.startsWith("::FFFF:")) {
+            return ip.substring(7);
         }
         return ip;
+    }
+
+    private boolean isValidIpv4(String ip) {
+        return ip != null && IPV4_PATTERN.matcher(ip).matches();
     }
 }

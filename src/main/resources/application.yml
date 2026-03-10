@@ -17,4 +17,6 @@ spring:
     properties:
       hibernate:
         format_sql: ${JPA_FORMAT_SQL}
+        jdbc:
+          time_zone: Asia/Seoul
     open-in-view: ${JPA_OPEN_IN_VIEW}
